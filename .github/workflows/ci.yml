@@ -9,8 +9,32 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+        postgres:
+          image: postgres:12
+          env:
+            POSTGRES_USERNAME: postgres
+            POSTGRES_PASSWORD: secret
+            POSTGRES_DB: simple_bank
+          options: >-
+            --health-cmd pg_isready
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 5
+          ports:
+            - 5432:5432
     steps:
     - uses: actions/checkout@v4
+
+    - name: Install golang-migrate
+      run: |
+        curl -L https://packagecloud.io/golang-migrate/migrate/gpgkey | sudo apt-key add -
+        echo "deb https://packagecloud.io/golang-migrate/migrate/ubuntu/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/migrate.list
+        sudo apt-get update
+        sudo apt-get install -y migrate
+
+    - name: Run migrations
+      run: make migrateup
 
     - name: Set up Go
       uses: actions/setup-go@v5
